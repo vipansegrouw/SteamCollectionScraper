@@ -1,15 +1,12 @@
 import json
 import csv
+from main import CACHE_FILE
 
-CACHE_FILE = "steam_app_cache.json"
 CSV_FILE = "steam_app_data.csv"
 
 # Load JSON data
 with open(CACHE_FILE, "r") as f:
     app_cache = json.load(f)
-
-# The JSON keys are strings, but app info is the value
-# We want to flatten the data to CSV rows
 
 # Define CSV headers
 headers = [
@@ -30,11 +27,9 @@ with open(CSV_FILE, "w", newline="", encoding="utf-8") as csvfile:
     writer.writeheader()
 
     for appid_str, app_info in app_cache.items():
-        # Skip if status is unavailable (optional)
         if app_info.get("status") == "unavailable":
             continue
 
-        # Prepare row data, converting lists to comma-separated strings
         row = {
             "appid": app_info.get("appid", ""),
             "name": app_info.get("name", ""),

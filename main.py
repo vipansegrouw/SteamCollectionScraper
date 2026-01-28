@@ -12,6 +12,10 @@ import requests
 userid = "123456789"
 # this is the path to your steam base directory (the one that contains stuff like "common" and "userdata")
 path_base = os.path.join("/home/foo/.steam/steam")
+# you can customise the name of the cache file if you desire
+CACHE_FILE = "steam_app_cache.json"
+# we'll save the cache every n entries as a fallback in case execution is halted early
+SAVE_EVERY = 5
 
 # -----------------------------
 # input your info above here
@@ -25,14 +29,12 @@ collections = []
 # -----------------------------
 # Cache setup
 # -----------------------------
-CACHE_FILE = "steam_app_cache.json"
-SAVE_EVERY = 5  # Save cache every 5 new fetched entries
 
 if os.path.exists(CACHE_FILE):
     with open(CACHE_FILE, "r") as f:
         try:
             app_cache = json.load(f)
-            # JSON keys are strings → convert back to int
+            # JSON keys are strings -> convert back to int
             app_cache = {int(k): v for k, v in app_cache.items()}
         except json.JSONDecodeError:
             app_cache = {}
@@ -48,15 +50,16 @@ def save_cache():
 # -----------------------------
 # Steam API w/ recursive backoff
 # -----------------------------
+
 def fetch_app_info(appid, collection_name, attempt=1, max_attempts=5, base_delay=0.5):
     global new_entries_since_save
 
-    # ✅ Cache hit
+    # Cache hit
     if appid in app_cache:
         printstring = f"🗂️ Cache hit: {app_cache[appid].get('name', 'Unknown')} ({appid})"
         app_info = app_cache[appid]
 
-        # Ensure 'collection' is a list
+        # Ensure 'collection' is a list, maintaining compatibility
         collections = app_info.get("collection")
         if not collections:
             app_info["collection"] = [collection_name]
@@ -77,7 +80,7 @@ def fetch_app_info(appid, collection_name, attempt=1, max_attempts=5, base_delay
         print(f"❌ Giving up on app {appid}")
         return None
 
-    # Wait before making a network request (not for cache hits)
+    # Wait before making a network request
     delay = base_delay * (2 ** (attempt - 1))
     if attempt > 1 or attempt == 1:
         time.sleep(delay)
@@ -136,6 +139,7 @@ def fetch_app_info(appid, collection_name, attempt=1, max_attempts=5, base_delay
 # -----------------------------
 # Load collections
 # -----------------------------
+
 for file in files:
     if file.startswith(match):
         file_path = os.path.join(path, file)
@@ -171,19 +175,10 @@ for file in files:
 # -----------------------------
 # Fetch Steam metadata
 # -----------------------------
+
 for collection in collections:
     for appid in collection["added"]:
         fetch_app_info(appid, collection["name"])
 
 # Save cache at the end just in case
 save_cache()
-
-# -----------------------------
-# Attach metadata to collections
-# -----------------------------
-for collection in collections:
-    collection["games"] = [
-        app_cache[appid]
-        for appid in collection["added"]
-        if appid in app_cache and app_cache[appid].get("status") != "unavailable"
-    ]
