@@ -136,49 +136,51 @@ def fetch_app_info(appid, collection_name, attempt=1, max_attempts=5, base_delay
         print(f"⚠️  App {appid} failed (attempt {attempt}), retrying in {delay:.1f}s")
         return fetch_app_info(appid, collection_name, attempt + 1, max_attempts, base_delay)
 
-# -----------------------------
-# Load collections
-# -----------------------------
+if __name__ == "__main__":
 
-for file in files:
-    if file.startswith(match):
-        file_path = os.path.join(path, file)
-        with open(file_path, "r") as f:
-            json_data = json.loads(f.read())
+    # -----------------------------
+    # Load collections
+    # -----------------------------
 
-            for entry_name, entry in json_data:
-                if entry.get("is_deleted"):
-                    continue
+    for file in files:
+        if file.startswith(match):
+            file_path = os.path.join(path, file)
+            with open(file_path, "r") as f:
+                json_data = json.loads(f.read())
 
-                if not entry_name.startswith("user-collections.uc-"):
-                    continue
+                for entry_name, entry in json_data:
+                    if entry.get("is_deleted"):
+                        continue
 
-                value = entry.get("value")
-                if not value:
-                    continue
+                    if not entry_name.startswith("user-collections.uc-"):
+                        continue
 
-                try:
-                    value_data = json.loads(value)
-                except json.JSONDecodeError:
-                    continue
+                    value = entry.get("value")
+                    if not value:
+                        continue
 
-                added = value_data.get("added", [])
-                if not added:
-                    continue
+                    try:
+                        value_data = json.loads(value)
+                    except json.JSONDecodeError:
+                        continue
 
-                collections.append({
-                    "id": value_data.get("id"),
-                    "name": value_data.get("name"),
-                    "added": added,
-                })
+                    added = value_data.get("added", [])
+                    if not added:
+                        continue
 
-# -----------------------------
-# Fetch Steam metadata
-# -----------------------------
+                    collections.append({
+                        "id": value_data.get("id"),
+                        "name": value_data.get("name"),
+                        "added": added,
+                    })
 
-for collection in collections:
-    for appid in collection["added"]:
-        fetch_app_info(appid, collection["name"])
+    # -----------------------------
+    # Fetch Steam metadata
+    # -----------------------------
 
-# Save cache at the end just in case
-save_cache()
+    for collection in collections:
+        for appid in collection["added"]:
+            fetch_app_info(appid, collection["name"])
+
+    # Save cache at the end just in case
+    save_cache()
